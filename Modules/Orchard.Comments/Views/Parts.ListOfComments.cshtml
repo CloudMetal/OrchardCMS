@@ -1,0 +1,29 @@
+﻿@if (Model.CommentCount > 0) {
+    <div id="comments">
+        <h2 class="comment-count">@T.Plural("1 Comment", "{0} Comments", (int)Model.CommentCount)</h2>
+        @Display.ListOfComments(CommentShapes: Model.CommentShapes)
+    </div>
+}
+
+@using(Script.Foot()) {
+    Script.Require("jQuery");
+    
+<script type="text/javascript">
+//<![CDATA[
+    $(function () {
+        $('.comment-reply-button').click(function () {
+            var self = $(this);
+            var id = self.data("id");
+            var reply = $('#Comments_RepliedOn');
+            reply.val(id);
+
+            // inject the form in the replied zone
+            $('.comment-form').appendTo(self.parents('article').first());
+            
+            // don't execute the link action
+            return false;
+        });
+    });
+//]]>
+</script>
+}
