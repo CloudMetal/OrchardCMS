@@ -10,8 +10,6 @@ namespace Orchard.Comments.Services {
         CommentPart GetComment(int id);
         ContentItemMetadata GetDisplayForCommentedContent(int id);
         ContentItem GetCommentedContent(int id);
-        CommentPart CreateComment(CreateCommentContext commentRecord, bool moderateComments);
-        void UpdateComment(int id, string name, string email, string siteName, string commentText, CommentStatus status);
         void ApproveComment(int commentId);
         void UnapproveComment(int commentId);
         void MarkCommentAsSpam(int commentId);
