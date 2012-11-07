@@ -32,15 +32,16 @@ namespace Orchard.Comments.Controllers {
 
             var comment = Services.ContentManager.New("Comment");
 
-            Services.ContentManager.Create(comment);
             var editorShape = Services.ContentManager.UpdateEditor(comment, this);
+
+            Services.ContentManager.Create(comment);
 
             if (ModelState.IsValid) {
                 if (comment.Has<CommentPart>()) {
                     var commentPart = comment.As<CommentPart>();
 
                     // ensure the comments are not closed on the container, as the html could have been tampered manually
-                    var container = Services.ContentManager.Get(commentPart.CommentedOnContainer);
+                    var container = Services.ContentManager.Get(commentPart.CommentedOn);
                     CommentsPart commentsPart = null;
                     if(container != null) {
                         commentsPart = container.As<CommentsPart>();
@@ -55,7 +56,7 @@ namespace Orchard.Comments.Controllers {
                     }
 
                     // is it a response to another comment ?
-                    if(commentPart.RepliedOn.HasValue && (commentsPart == null || !commentsPart.ThreadedComments)) {
+                    if(commentPart.RepliedOn.HasValue && commentsPart != null && commentsPart.ThreadedComments) {
                         var replied = Services.ContentManager.Get(commentPart.RepliedOn.Value);
                         if(replied != null) {
                             var repliedPart = replied.As<CommentPart>();
@@ -63,16 +64,16 @@ namespace Orchard.Comments.Controllers {
                             // what is the next position after the anwered comment
                             if(repliedPart != null) {
                                 // the next comment is the one right after the RepliedOn one, at the same level
-                                var nextComment = _commentService.GetCommentsForCommentedContent(commentPart.CommentedOnContainer)
+                                var nextComment = _commentService.GetCommentsForCommentedContent(commentPart.CommentedOn)
                                     .Where(x => x.RepliedOn == repliedPart.RepliedOn && x.CommentDateUtc > repliedPart.CommentDateUtc)
-                                    .OrderBy(x => x.CommentDateUtc)
+                                    .OrderBy(x => x.Position)
                                     .Slice(0, 1)
                                     .FirstOrDefault();
 
                                 // the previous comment is the last one under the RepliedOn
-                                var previousComment = _commentService.GetCommentsForCommentedContent(commentPart.CommentedOnContainer)
+                                var previousComment = _commentService.GetCommentsForCommentedContent(commentPart.CommentedOn)
                                     .Where(x => x.RepliedOn == commentPart.RepliedOn)
-                                    .OrderByDescending(x => x.CommentDateUtc)
+                                    .OrderByDescending(x => x.Position)
                                     .Slice(0, 1)
                                     .FirstOrDefault();
 
@@ -92,7 +93,9 @@ namespace Orchard.Comments.Controllers {
                         
                     }
                     else {
+                        // new comment, last in position
                         commentPart.RepliedOn = null;
+                        commentPart.Position = comment.Id;
                     }
 
                     if (commentPart.Status == CommentStatus.Pending) {
@@ -114,6 +117,10 @@ namespace Orchard.Comments.Controllers {
                 }
 
                 TempData["Comments.InvalidCommentEditorShape"] = editorShape;
+                var commentPart = comment.As<CommentPart>(); 
+                if(commentPart.RepliedOn.HasValue) {
+                    TempData["Comments.RepliedOn"] = commentPart.RepliedOn.Value;
+                }
             }
 
             return this.RedirectLocal(returnUrl, "~/");
